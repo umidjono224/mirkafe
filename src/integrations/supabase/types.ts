@@ -170,7 +170,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_delivered_orders: { Args: never; Returns: undefined }
     }
     Enums: {
       order_status: "tayyorlanmoqda" | "yetkazilmoqda" | "yetkazildi"
