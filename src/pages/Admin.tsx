@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAllOrders, OrderStatus } from '@/hooks/useOrders';
-import { useProducts } from '@/hooks/useProducts';
+import { useProducts, Category, Product } from '@/hooks/useProducts';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPrice, formatPhone } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { ArrowLeft, Clock, Truck, CheckCircle, ExternalLink, Package, TrendingUp, DollarSign } from 'lucide-react';
+import { ArrowLeft, Clock, Truck, CheckCircle, ExternalLink, Package, TrendingUp, DollarSign, Plus, Pencil, Trash2, Upload, X, Image } from 'lucide-react';
 
 const ADMIN_LOGIN = 'Jumamirkafe';
 const ADMIN_PASSWORD = 'Bmirkafejuma';
@@ -18,6 +18,22 @@ const statusConfig: Record<OrderStatus, { label: string; icon: typeof Clock; cla
   yetkazildi: { label: 'Yetkazildi', icon: CheckCircle, className: 'status-delivered' },
 };
 
+interface ProductFormData {
+  name: string;
+  price: string;
+  category_id: string;
+  is_available: boolean;
+  image_url: string | null;
+}
+
+const initialFormData: ProductFormData = {
+  name: '',
+  price: '',
+  category_id: '',
+  is_available: true,
+  image_url: null,
+};
+
 export default function Admin() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -26,7 +42,15 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'stats'>('orders');
   
   const { orders, loading: ordersLoading, updateOrderStatus } = useAllOrders();
-  const { products, loading: productsLoading, refetch: refetchProducts } = useProducts();
+  const { products, categories, loading: productsLoading, refetch: refetchProducts } = useProducts();
+
+  // Product form state
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState<ProductFormData>(initialFormData);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogin = () => {
     if (login === ADMIN_LOGIN && password === ADMIN_PASSWORD) {
@@ -56,6 +80,141 @@ export default function Admin() {
     }
   };
 
+  // Open add product form
+  const handleAddProduct = () => {
+    setEditingProduct(null);
+    setFormData({
+      ...initialFormData,
+      category_id: categories[0]?.id || '',
+    });
+    setShowProductForm(true);
+  };
+
+  // Open edit product form
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      price: product.price.toString(),
+      category_id: product.category_id || categories[0]?.id || '',
+      is_available: product.is_available,
+      image_url: product.image_url,
+    });
+    setShowProductForm(true);
+  };
+
+  // Delete product
+  const handleDeleteProduct = async (productId: string) => {
+    if (!confirm('Bu mahsulotni o\'chirmoqchimisiz?')) return;
+    
+    try {
+      const { error } = await supabase.from('products').delete().eq('id', productId);
+      if (error) throw error;
+      refetchProducts();
+      toast.success('Mahsulot o\'chirildi');
+    } catch (err: any) {
+      toast.error('Xatolik: ' + err.message);
+    }
+  };
+
+  // Upload image
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Faqat rasm fayllari qabul qilinadi');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Rasm hajmi 5MB dan katta bo\'lmasligi kerak');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, image_url: publicUrl }));
+      toast.success('Rasm yuklandi');
+    } catch (err: any) {
+      toast.error('Rasm yuklashda xatolik: ' + err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Save product
+  const handleSaveProduct = async () => {
+    if (!formData.name.trim()) {
+      toast.error('Mahsulot nomini kiriting');
+      return;
+    }
+
+    const price = parseInt(formData.price);
+    if (isNaN(price) || price <= 0) {
+      toast.error('Narxni to\'g\'ri kiriting');
+      return;
+    }
+
+    if (!formData.category_id) {
+      toast.error('Kategoriyani tanlang');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const productData = {
+        name: formData.name.trim(),
+        price,
+        category_id: formData.category_id,
+        is_available: formData.is_available,
+        image_url: formData.image_url,
+      };
+
+      if (editingProduct) {
+        // Update existing product
+        const { error } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', editingProduct.id);
+        if (error) throw error;
+        toast.success('Mahsulot yangilandi');
+      } else {
+        // Create new product
+        const { error } = await supabase
+          .from('products')
+          .insert([productData]);
+        if (error) throw error;
+        toast.success('Mahsulot qo\'shildi');
+      }
+
+      setShowProductForm(false);
+      setFormData(initialFormData);
+      setEditingProduct(null);
+      refetchProducts();
+    } catch (err: any) {
+      toast.error('Xatolik: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Stats
   const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
   const todayRevenue = todayOrders.reduce((sum, o) => sum + o.total_amount, 0);
@@ -73,7 +232,10 @@ export default function Admin() {
             <ArrowLeft className="w-4 h-4 mr-2" /> Orqaga
           </Button>
           <div className="bg-card rounded-2xl p-6 shadow-card">
-            <h1 className="text-xl font-bold mb-4">Admin Kirish</h1>
+            <div className="flex justify-center mb-4">
+              <img src="/logo.png" alt="MirCafe" className="w-16 h-16 rounded-xl object-cover" />
+            </div>
+            <h1 className="text-xl font-bold mb-4 text-center">Admin Kirish</h1>
             <div className="space-y-3">
               <Input placeholder="Login" value={login} onChange={(e) => setLogin(e.target.value)} className="h-12 rounded-xl" />
               <Input type="password" placeholder="Parol" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 rounded-xl" />
@@ -92,6 +254,7 @@ export default function Admin() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/help')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
+          <img src="/logo.png" alt="MirCafe" className="w-8 h-8 rounded-lg object-cover" />
           <h1 className="text-xl font-bold">Admin Panel</h1>
         </div>
         <div className="flex border-b border-border">
@@ -150,19 +313,46 @@ export default function Admin() {
 
         {activeTab === 'products' && (
           <div className="space-y-3">
+            <Button onClick={handleAddProduct} className="w-full h-12 rounded-xl bg-primary mb-4">
+              <Plus className="w-5 h-5 mr-2" /> Yangi mahsulot qo'shish
+            </Button>
+            
             {productsLoading ? <p>Yuklanmoqda...</p> : products.map((product) => (
-              <div key={product.id} className="bg-card rounded-xl p-4 shadow-card flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{product.name}</p>
-                  <p className="text-sm text-primary">{formatPrice(product.price)}</p>
+              <div key={product.id} className="bg-card rounded-xl p-4 shadow-card">
+                <div className="flex items-center gap-3">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name} className="w-16 h-16 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
+                      <Image className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <p className="font-medium">{product.name}</p>
+                    <p className="text-sm text-primary">{formatPrice(product.price)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {categories.find(c => c.id === product.category_id)?.name || 'Kategoriyasiz'}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      variant={product.is_available ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => toggleAvailability(product.id, product.is_available)}
+                      className="text-xs"
+                    >
+                      {product.is_available ? 'Mavjud' : 'Mavjud emas'}
+                    </Button>
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleEditProduct(product)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteProduct(product.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <Button
-                  variant={product.is_available ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => toggleAvailability(product.id, product.is_available)}
-                >
-                  {product.is_available ? 'Mavjud' : 'Mavjud emas'}
-                </Button>
               </div>
             ))}
           </div>
@@ -202,6 +392,122 @@ export default function Admin() {
           </div>
         )}
       </div>
+
+      {/* Product Form Modal */}
+      {showProductForm && (
+        <div className="fixed inset-0 z-50 bg-foreground/50 flex items-end" onClick={() => setShowProductForm(false)}>
+          <div
+            className="w-full bg-card rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto safe-bottom"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold">
+                {editingProduct ? 'Mahsulotni tahrirlash' : 'Yangi mahsulot'}
+              </h2>
+              <button onClick={() => setShowProductForm(false)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Image upload */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Rasm</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                {formData.image_url ? (
+                  <div className="relative inline-block">
+                    <img src={formData.image_url} alt="Preview" className="w-32 h-32 rounded-xl object-cover" />
+                    <button
+                      onClick={() => setFormData(prev => ({ ...prev, image_url: null }))}
+                      className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="w-full h-24 rounded-xl border-dashed"
+                  >
+                    {isUploading ? (
+                      <span>Yuklanmoqda...</span>
+                    ) : (
+                      <span className="flex flex-col items-center gap-2">
+                        <Upload className="w-6 h-6" />
+                        <span>Rasm yuklash</span>
+                      </span>
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Nomi</label>
+                <Input
+                  placeholder="Mahsulot nomi"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="h-12 rounded-xl"
+                />
+              </div>
+
+              {/* Price */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Narxi (so'm)</label>
+                <Input
+                  type="number"
+                  placeholder="25000"
+                  value={formData.price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                  className="h-12 rounded-xl"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Kategoriya</label>
+                <select
+                  value={formData.category_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
+                  className="w-full h-12 rounded-xl border border-input bg-background px-3"
+                >
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Availability */}
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Mavjud</label>
+                <button
+                  onClick={() => setFormData(prev => ({ ...prev, is_available: !prev.is_available }))}
+                  className={`w-12 h-6 rounded-full transition-colors ${formData.is_available ? 'bg-primary' : 'bg-muted'}`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${formData.is_available ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+
+              <Button
+                onClick={handleSaveProduct}
+                disabled={isSaving}
+                className="w-full h-14 text-lg font-semibold rounded-2xl bg-fire text-primary-foreground mt-4"
+              >
+                {isSaving ? 'Saqlanmoqda...' : (editingProduct ? 'Saqlash' : 'Qo\'shish')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
