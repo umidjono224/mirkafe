@@ -92,9 +92,12 @@ export default function Menu() {
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border safe-top">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-fire">MirCafe</h1>
-              <p className="text-sm text-muted-foreground">Salom, {user?.name}! 👋</p>
+            <div className="flex items-center gap-3">
+              <img src="/logo.png" alt="MirCafe" className="w-12 h-12 rounded-xl object-cover" />
+              <div>
+                <h1 className="text-xl font-bold text-fire">MirCafe</h1>
+                <p className="text-sm text-muted-foreground">Salom, {user?.name}! 👋</p>
+              </div>
             </div>
             {hasLastOrder && isEmpty && (
               <Button
