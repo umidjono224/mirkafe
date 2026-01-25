@@ -38,6 +38,33 @@ export type Database = {
         }
         Relationships: []
       }
+      order_stats: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          order_count: number
+          total_revenue: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          order_count?: number
+          total_revenue?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          order_count?: number
+          total_revenue?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address: string

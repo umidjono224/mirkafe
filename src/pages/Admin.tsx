@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAllOrders, OrderStatus } from '@/hooks/useOrders';
 import { useProducts, Category, Product } from '@/hooks/useProducts';
+import { useOrderStats } from '@/hooks/useOrderStats';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPrice, formatPhone } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { ArrowLeft, Clock, Truck, CheckCircle, ExternalLink, Package, TrendingUp, DollarSign, Plus, Pencil, Trash2, Upload, X, Image, FolderPlus } from 'lucide-react';
+import { ArrowLeft, Clock, Truck, CheckCircle, ExternalLink, Package, TrendingUp, DollarSign, Plus, Pencil, Trash2, Upload, X, Image, FolderPlus, ChevronUp, ChevronDown, Users } from 'lucide-react';
 
 const ADMIN_LOGIN = 'Jumamirkafe';
 const ADMIN_PASSWORD = 'Bmirkafejuma';
@@ -42,7 +43,8 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'stats'>('orders');
   
   const { orders, loading: ordersLoading, updateOrderStatus } = useAllOrders();
-  const { products, categories, loading: productsLoading, refetch: refetchProducts, createCategory, deleteCategory } = useProducts();
+  const { products, categories, loading: productsLoading, refetch: refetchProducts, createCategory, deleteCategory, reorderCategories } = useProducts();
+  const { stats, loading: statsLoading, refetch: refetchStats } = useOrderStats();
 
   // Product form state
   const [showProductForm, setShowProductForm] = useState(false);
@@ -151,6 +153,32 @@ export default function Admin() {
       toast.success('Kategoriya o\'chirildi');
     } catch (err: any) {
       toast.error(err.message);
+    }
+  };
+
+  // Move category up
+  const handleMoveCategoryUp = async (index: number) => {
+    if (index === 0) return;
+    const newOrder = [...categories];
+    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+    try {
+      await reorderCategories(newOrder.map(c => c.id));
+      toast.success('Tartib yangilandi');
+    } catch {
+      toast.error('Xatolik');
+    }
+  };
+
+  // Move category down
+  const handleMoveCategoryDown = async (index: number) => {
+    if (index === categories.length - 1) return;
+    const newOrder = [...categories];
+    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+    try {
+      await reorderCategories(newOrder.map(c => c.id));
+      toast.success('Tartib yangilandi');
+    } catch {
+      toast.error('Xatolik');
     }
   };
 
@@ -383,19 +411,35 @@ export default function Admin() {
                 </div>
               )}
               
-              <div className="flex flex-wrap gap-2">
-                {categories.map((cat) => (
+              <div className="space-y-2">
+                {categories.map((cat, index) => (
                   <div
                     key={cat.id}
-                    className="flex items-center gap-1 bg-muted px-3 py-1.5 rounded-full text-sm"
+                    className="flex items-center justify-between bg-muted px-3 py-2 rounded-lg"
                   >
-                    <span>{cat.name}</span>
-                    <button
-                      onClick={() => handleDeleteCategory(cat.id, cat.name)}
-                      className="ml-1 text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+                    <span className="text-sm font-medium">{cat.name}</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleMoveCategoryUp(index)}
+                        disabled={index === 0}
+                        className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleMoveCategoryDown(index)}
+                        disabled={index === categories.length - 1}
+                        className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                        className="p-1 text-muted-foreground hover:text-destructive"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -450,24 +494,62 @@ export default function Admin() {
 
         {activeTab === 'stats' && (
           <div className="space-y-4">
+            {/* Today's orders - from persistent stats */}
             <div className="bg-card rounded-2xl p-4 shadow-card flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                 <Package className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Bugun buyurtmalar</p>
-                <p className="text-2xl font-bold">{todayOrders.length}</p>
+                <p className="text-sm text-muted-foreground">Bugun yetkazildi</p>
+                <p className="text-2xl font-bold">{statsLoading ? '...' : stats.todayOrders}</p>
               </div>
             </div>
+            
+            {/* Today's revenue - from persistent stats */}
             <div className="bg-card rounded-2xl p-4 shadow-card flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-secondary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Bugungi daromad</p>
-                <p className="text-2xl font-bold">{formatPrice(todayRevenue)}</p>
+                <p className="text-2xl font-bold">{statsLoading ? '...' : formatPrice(stats.todayRevenue)}</p>
               </div>
             </div>
+            
+            {/* Total orders - all time */}
+            <div className="bg-card rounded-2xl p-4 shadow-card flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Package className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Jami buyurtmalar</p>
+                <p className="text-2xl font-bold">{statsLoading ? '...' : stats.totalOrders}</p>
+              </div>
+            </div>
+            
+            {/* Total revenue - all time */}
+            <div className="bg-card rounded-2xl p-4 shadow-card flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-secondary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Jami daromad</p>
+                <p className="text-2xl font-bold">{statsLoading ? '...' : formatPrice(stats.totalRevenue)}</p>
+              </div>
+            </div>
+            
+            {/* Total users */}
+            <div className="bg-card rounded-2xl p-4 shadow-card flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
+                <Users className="w-6 h-6 text-accent-foreground" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Ro'yxatdan o'tganlar</p>
+                <p className="text-2xl font-bold">{statsLoading ? '...' : stats.totalUsers}</p>
+              </div>
+            </div>
+            
+            {/* Most popular product */}
             {topProduct && (
               <div className="bg-card rounded-2xl p-4 shadow-card flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">

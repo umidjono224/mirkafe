@@ -174,56 +174,65 @@ export default function Menu() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full bg-card rounded-t-3xl p-6 pb-8 max-h-[85vh] overflow-y-auto"
-              style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
+              className="w-full bg-card rounded-t-3xl p-6 flex flex-col"
+              style={{ 
+                maxHeight: 'calc(90vh - env(safe-area-inset-bottom, 0px))',
+                paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' 
+              }}
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Yetkazib berish</h2>
                 <button onClick={() => setShowOrderModal(false)}>
                   <X className="w-6 h-6" />
                 </button>
               </div>
 
-              {/* Order summary */}
-              <div className="mb-6 p-4 bg-muted rounded-2xl">
-                <div className="flex justify-between mb-2">
-                  <span className="text-muted-foreground">{itemCount} ta mahsulot</span>
-                  <span className="font-bold">{formatPrice(total)}</span>
+              {/* Scrollable content area */}
+              <div className="flex-1 overflow-y-auto min-h-0">
+                {/* Order summary */}
+                <div className="mb-4 p-4 bg-muted rounded-2xl">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-muted-foreground">{itemCount} ta mahsulot</span>
+                    <span className="font-bold">{formatPrice(total)}</span>
+                  </div>
+                </div>
+
+                {/* Location */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MapPin className="w-5 h-5 text-primary" />
+                    <span className="font-medium">Manzil</span>
+                  </div>
+                  
+                  {locationLoading ? (
+                    <div className="p-4 bg-muted rounded-2xl text-center">
+                      <div className="animate-pulse">Joylashuv aniqlanmoqda...</div>
+                    </div>
+                  ) : location ? (
+                    <div className="p-4 bg-muted rounded-2xl">
+                      <p className="text-sm">{location.address}</p>
+                    </div>
+                  ) : (
+                    <Input
+                      placeholder="Manzilingizni kiriting"
+                      value={manualAddress}
+                      onChange={(e) => setManualAddress(e.target.value)}
+                      className="h-14 rounded-2xl"
+                    />
+                  )}
                 </div>
               </div>
 
-              {/* Location */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  <span className="font-medium">Manzil</span>
-                </div>
-                
-                {locationLoading ? (
-                  <div className="p-4 bg-muted rounded-2xl text-center">
-                    <div className="animate-pulse">Joylashuv aniqlanmoqda...</div>
-                  </div>
-                ) : location ? (
-                  <div className="p-4 bg-muted rounded-2xl">
-                    <p className="text-sm">{location.address}</p>
-                  </div>
-                ) : (
-                  <Input
-                    placeholder="Manzilingizni kiriting"
-                    value={manualAddress}
-                    onChange={(e) => setManualAddress(e.target.value)}
-                    className="h-14 rounded-2xl"
-                  />
-                )}
+              {/* Fixed confirm button at bottom */}
+              <div className="pt-4 flex-shrink-0">
+                <Button
+                  onClick={handleConfirmOrder}
+                  disabled={isOrdering || (!location && !manualAddress.trim())}
+                  className="w-full h-14 text-lg font-semibold rounded-2xl bg-fire text-primary-foreground"
+                >
+                  {isOrdering ? 'Yuborilmoqda...' : 'Tasdiqlash'}
+                </Button>
               </div>
-
-              <Button
-                onClick={handleConfirmOrder}
-                disabled={isOrdering || (!location && !manualAddress.trim())}
-                className="w-full h-14 text-lg font-semibold rounded-2xl bg-fire text-primary-foreground"
-              >
-                {isOrdering ? 'Yuborilmoqda...' : 'Tasdiqlash'}
-              </Button>
             </motion.div>
           </motion.div>
         )}

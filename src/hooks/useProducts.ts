@@ -86,6 +86,29 @@ export function useProducts() {
     await fetchData();
   };
 
+  const updateCategoryOrder = async (categoryId: string, newOrder: number) => {
+    const { error } = await supabase
+      .from('categories')
+      .update({ sort_order: newOrder })
+      .eq('id', categoryId);
+    
+    if (error) throw error;
+    await fetchData();
+  };
+
+  const reorderCategories = async (orderedIds: string[]) => {
+    // Update each category with its new sort order
+    const updates = orderedIds.map((id, index) => 
+      supabase
+        .from('categories')
+        .update({ sort_order: index })
+        .eq('id', id)
+    );
+    
+    await Promise.all(updates);
+    await fetchData();
+  };
+
   return {
     categories,
     products,
@@ -95,5 +118,7 @@ export function useProducts() {
     getProductsByCategory,
     createCategory,
     deleteCategory,
+    updateCategoryOrder,
+    reorderCategories,
   };
 }

@@ -31,7 +31,7 @@ export default function ProductCard({ product, quantity, onAdd, onRemove }: Prod
       
       {/* Content */}
       <div className="p-3">
-        <h3 className="font-semibold text-sm mb-1 line-clamp-1">{product.name}</h3>
+        <h3 className="font-semibold text-sm mb-1 line-clamp-2 break-words">{product.name}</h3>
         <p className="text-primary font-bold text-sm">{formatPrice(product.price)}</p>
         
         {/* Quantity controls */}
