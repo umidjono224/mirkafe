@@ -55,6 +55,37 @@ export function useProducts() {
     return products.filter((p) => p.category_id === categoryId);
   };
 
+  const createCategory = async (name: string) => {
+    const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+    const maxOrder = categories.reduce((max, c) => Math.max(max, c.sort_order), 0);
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({ name, slug, sort_order: maxOrder + 1 })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    await fetchData();
+    return data;
+  };
+
+  const deleteCategory = async (categoryId: string) => {
+    // First check if any products use this category
+    const productsInCategory = products.filter(p => p.category_id === categoryId);
+    if (productsInCategory.length > 0) {
+      throw new Error('Bu kategoriyada mahsulotlar bor. Avval mahsulotlarni o\'chiring yoki boshqa kategoriyaga o\'tkazing.');
+    }
+    
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', categoryId);
+    
+    if (error) throw error;
+    await fetchData();
+  };
+
   return {
     categories,
     products,
@@ -62,5 +93,7 @@ export function useProducts() {
     error,
     refetch: fetchData,
     getProductsByCategory,
+    createCategory,
+    deleteCategory,
   };
 }

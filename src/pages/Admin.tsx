@@ -7,7 +7,7 @@ import { formatPrice, formatPhone } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { ArrowLeft, Clock, Truck, CheckCircle, ExternalLink, Package, TrendingUp, DollarSign, Plus, Pencil, Trash2, Upload, X, Image } from 'lucide-react';
+import { ArrowLeft, Clock, Truck, CheckCircle, ExternalLink, Package, TrendingUp, DollarSign, Plus, Pencil, Trash2, Upload, X, Image, FolderPlus } from 'lucide-react';
 
 const ADMIN_LOGIN = 'Jumamirkafe';
 const ADMIN_PASSWORD = 'Bmirkafejuma';
@@ -42,7 +42,7 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'stats'>('orders');
   
   const { orders, loading: ordersLoading, updateOrderStatus } = useAllOrders();
-  const { products, categories, loading: productsLoading, refetch: refetchProducts } = useProducts();
+  const { products, categories, loading: productsLoading, refetch: refetchProducts, createCategory, deleteCategory } = useProducts();
 
   // Product form state
   const [showProductForm, setShowProductForm] = useState(false);
@@ -51,6 +51,11 @@ export default function Admin() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Category form state
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
 
   const handleLogin = () => {
     if (login === ADMIN_LOGIN && password === ADMIN_PASSWORD) {
@@ -114,6 +119,38 @@ export default function Admin() {
       toast.success('Mahsulot o\'chirildi');
     } catch (err: any) {
       toast.error('Xatolik: ' + err.message);
+    }
+  };
+
+  // Create category
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.error('Kategoriya nomini kiriting');
+      return;
+    }
+
+    setIsSavingCategory(true);
+    try {
+      await createCategory(newCategoryName.trim());
+      toast.success('Kategoriya qo\'shildi');
+      setNewCategoryName('');
+      setShowCategoryForm(false);
+    } catch (err: any) {
+      toast.error('Xatolik: ' + err.message);
+    } finally {
+      setIsSavingCategory(false);
+    }
+  };
+
+  // Delete category
+  const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
+    if (!confirm(`"${categoryName}" kategoriyasini o'chirmoqchimisiz?`)) return;
+    
+    try {
+      await deleteCategory(categoryId);
+      toast.success('Kategoriya o\'chirildi');
+    } catch (err: any) {
+      toast.error(err.message);
     }
   };
 
@@ -312,11 +349,64 @@ export default function Admin() {
         )}
 
         {activeTab === 'products' && (
-          <div className="space-y-3">
-            <Button onClick={handleAddProduct} className="w-full h-12 rounded-xl bg-primary mb-4">
+          <div className="space-y-4">
+            {/* Category Management Section */}
+            <div className="bg-card rounded-xl p-4 shadow-card">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">Kategoriyalar</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCategoryForm(!showCategoryForm)}
+                  className="text-xs"
+                >
+                  <FolderPlus className="w-4 h-4 mr-1" />
+                  Yangi
+                </Button>
+              </div>
+              
+              {showCategoryForm && (
+                <div className="flex gap-2 mb-3">
+                  <Input
+                    placeholder="Kategoriya nomi"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    className="h-10 rounded-lg flex-1"
+                  />
+                  <Button
+                    onClick={handleCreateCategory}
+                    disabled={isSavingCategory}
+                    className="h-10 px-4"
+                  >
+                    {isSavingCategory ? '...' : 'Qo\'shish'}
+                  </Button>
+                </div>
+              )}
+              
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="flex items-center gap-1 bg-muted px-3 py-1.5 rounded-full text-sm"
+                  >
+                    <span>{cat.name}</span>
+                    <button
+                      onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                      className="ml-1 text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Add Product Button */}
+            <Button onClick={handleAddProduct} className="w-full h-12 rounded-xl bg-primary">
               <Plus className="w-5 h-5 mr-2" /> Yangi mahsulot qo'shish
             </Button>
             
+            {/* Products List */}
             {productsLoading ? <p>Yuklanmoqda...</p> : products.map((product) => (
               <div key={product.id} className="bg-card rounded-xl p-4 shadow-card">
                 <div className="flex items-center gap-3">

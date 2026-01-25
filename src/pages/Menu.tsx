@@ -174,7 +174,8 @@ export default function Menu() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full bg-card rounded-t-3xl p-6 safe-bottom"
+              className="w-full bg-card rounded-t-3xl p-6 pb-8 max-h-[85vh] overflow-y-auto"
+              style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold">Yetkazib berish</h2>
