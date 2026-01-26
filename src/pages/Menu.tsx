@@ -11,8 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import BottomNav from '@/components/BottomNav';
 import ProductCard from '@/components/ProductCard';
+import PromotionsBanner from '@/components/PromotionsBanner';
+import NotificationToast from '@/components/NotificationToast';
 import { toast } from 'sonner';
-import { Home, ShoppingBag, User, HelpCircle, MapPin, X, RotateCcw } from 'lucide-react';
+import { MapPin, X, RotateCcw } from 'lucide-react';
 
 export default function Menu() {
   const navigate = useNavigate();
@@ -88,6 +90,9 @@ export default function Menu() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      {/* Notification Toast */}
+      <NotificationToast userId={user?.id} />
+      
       {/* Header */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border safe-top">
         <div className="px-4 py-4">
@@ -126,6 +131,9 @@ export default function Menu() {
           </div>
         </div>
       </div>
+
+      {/* Promotions Banner - Only shows if promotions exist */}
+      <PromotionsBanner />
 
       {/* Products grid */}
       <div className="p-4 grid grid-cols-2 gap-3">
@@ -166,7 +174,7 @@ export default function Menu() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-foreground/50 flex items-end"
+            className="fixed inset-0 z-50 bg-foreground/50 flex items-end justify-center"
             onClick={() => setShowOrderModal(false)}
           >
             <motion.div
@@ -174,10 +182,9 @@ export default function Menu() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full bg-card rounded-t-3xl p-6 flex flex-col"
+              className="w-full bg-card rounded-t-3xl p-6 pb-8"
               style={{ 
-                maxHeight: 'calc(90vh - env(safe-area-inset-bottom, 0px))',
-                paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' 
+                maxHeight: '75vh',
               }}
             >
               <div className="flex items-center justify-between mb-4">
@@ -187,52 +194,47 @@ export default function Menu() {
                 </button>
               </div>
 
-              {/* Scrollable content area */}
-              <div className="flex-1 overflow-y-auto min-h-0">
-                {/* Order summary */}
-                <div className="mb-4 p-4 bg-muted rounded-2xl">
-                  <div className="flex justify-between mb-2">
-                    <span className="text-muted-foreground">{itemCount} ta mahsulot</span>
-                    <span className="font-bold">{formatPrice(total)}</span>
-                  </div>
-                </div>
-
-                {/* Location */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <MapPin className="w-5 h-5 text-primary" />
-                    <span className="font-medium">Manzil</span>
-                  </div>
-                  
-                  {locationLoading ? (
-                    <div className="p-4 bg-muted rounded-2xl text-center">
-                      <div className="animate-pulse">Joylashuv aniqlanmoqda...</div>
-                    </div>
-                  ) : location ? (
-                    <div className="p-4 bg-muted rounded-2xl">
-                      <p className="text-sm">{location.address}</p>
-                    </div>
-                  ) : (
-                    <Input
-                      placeholder="Manzilingizni kiriting"
-                      value={manualAddress}
-                      onChange={(e) => setManualAddress(e.target.value)}
-                      className="h-14 rounded-2xl"
-                    />
-                  )}
+              {/* Order summary */}
+              <div className="mb-4 p-4 bg-muted rounded-2xl">
+                <div className="flex justify-between mb-2">
+                  <span className="text-muted-foreground">{itemCount} ta mahsulot</span>
+                  <span className="font-bold">{formatPrice(total)}</span>
                 </div>
               </div>
 
-              {/* Fixed confirm button at bottom */}
-              <div className="pt-4 flex-shrink-0">
-                <Button
-                  onClick={handleConfirmOrder}
-                  disabled={isOrdering || (!location && !manualAddress.trim())}
-                  className="w-full h-14 text-lg font-semibold rounded-2xl bg-fire text-primary-foreground"
-                >
-                  {isOrdering ? 'Yuborilmoqda...' : 'Tasdiqlash'}
-                </Button>
+              {/* Location */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Manzil</span>
+                </div>
+                
+                {locationLoading ? (
+                  <div className="p-4 bg-muted rounded-2xl text-center">
+                    <div className="animate-pulse">Joylashuv aniqlanmoqda...</div>
+                  </div>
+                ) : location ? (
+                  <div className="p-4 bg-muted rounded-2xl">
+                    <p className="text-sm">{location.address}</p>
+                  </div>
+                ) : (
+                  <Input
+                    placeholder="Manzilingizni kiriting"
+                    value={manualAddress}
+                    onChange={(e) => setManualAddress(e.target.value)}
+                    className="h-14 rounded-2xl"
+                  />
+                )}
               </div>
+
+              {/* Confirm button - always visible */}
+              <Button
+                onClick={handleConfirmOrder}
+                disabled={isOrdering || (!location && !manualAddress.trim())}
+                className="w-full h-14 text-lg font-semibold rounded-2xl bg-fire text-primary-foreground"
+              >
+                {isOrdering ? 'Yuborilmoqda...' : 'Tasdiqlash'}
+              </Button>
             </motion.div>
           </motion.div>
         )}
