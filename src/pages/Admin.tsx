@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAllOrders, OrderStatus } from '@/hooks/useOrders';
 import { useProducts, Category, Product } from '@/hooks/useProducts';
 import { useOrderStats } from '@/hooks/useOrderStats';
+import { usePromotions, Promotion } from '@/hooks/usePromotions';
+import { useAdminNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPrice, formatPhone } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, Clock, Truck, CheckCircle, ExternalLink, Package, TrendingUp, DollarSign, Plus, Pencil, Trash2, Upload, X, Image, FolderPlus, ChevronUp, ChevronDown, Users } from 'lucide-react';
+import { ArrowLeft, Clock, Truck, CheckCircle, ExternalLink, Package, TrendingUp, DollarSign, Plus, Pencil, Trash2, Upload, X, Image, FolderPlus, ChevronUp, ChevronDown, Users, Megaphone, Send } from 'lucide-react';
 
 const ADMIN_LOGIN = 'Jumamirkafe';
 const ADMIN_PASSWORD = 'Bmirkafejuma';
@@ -40,11 +43,13 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'stats'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'aksiyalar' | 'stats'>('orders');
   
   const { orders, loading: ordersLoading, updateOrderStatus } = useAllOrders();
   const { products, categories, loading: productsLoading, refetch: refetchProducts, createCategory, deleteCategory, reorderCategories } = useProducts();
   const { stats, loading: statsLoading, refetch: refetchStats } = useOrderStats();
+  const { promotions, loading: promotionsLoading, createPromotion, deletePromotion, refetch: refetchPromotions } = usePromotions();
+  const { sendNotification, sending: sendingNotification } = useAdminNotifications();
 
   // Product form state
   const [showProductForm, setShowProductForm] = useState(false);
@@ -58,6 +63,13 @@ export default function Admin() {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+
+  // Promotion form state
+  const promotionFileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPromotion, setIsUploadingPromotion] = useState(false);
+  
+  // Notification state
+  const [notificationText, setNotificationText] = useState('');
 
   const handleLogin = () => {
     if (login === ADMIN_LOGIN && password === ADMIN_PASSWORD) {
@@ -323,13 +335,13 @@ export default function Admin() {
           <h1 className="text-xl font-bold">Admin Panel</h1>
         </div>
         <div className="flex border-b border-border">
-          {['orders', 'products', 'stats'].map((tab) => (
+          {['orders', 'products', 'aksiyalar', 'stats'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
               className={`flex-1 py-3 text-sm font-medium ${activeTab === tab ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
             >
-              {tab === 'orders' ? 'Buyurtmalar' : tab === 'products' ? 'Mahsulotlar' : 'Statistika'}
+              {tab === 'orders' ? 'Buyurtmalar' : tab === 'products' ? 'Mahsulotlar' : tab === 'aksiyalar' ? 'Aksiyalar' : 'Statistika'}
             </button>
           ))}
         </div>
@@ -489,6 +501,143 @@ export default function Admin() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {activeTab === 'aksiyalar' && (
+          <div className="space-y-6">
+            {/* Notification Section */}
+            <div className="bg-card rounded-2xl p-4 shadow-card">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Megaphone className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Xabar yuborish</h3>
+                  <p className="text-xs text-muted-foreground">Barcha foydalanuvchilarga</p>
+                </div>
+              </div>
+              
+              <Textarea
+                placeholder="Xabar matnini kiriting..."
+                value={notificationText}
+                onChange={(e) => setNotificationText(e.target.value)}
+                className="mb-3 rounded-xl min-h-[80px]"
+              />
+              
+              <Button
+                onClick={async () => {
+                  try {
+                    await sendNotification(notificationText);
+                    setNotificationText('');
+                    toast.success('Xabar yuborildi!');
+                  } catch (err: any) {
+                    toast.error(err.message);
+                  }
+                }}
+                disabled={sendingNotification || !notificationText.trim()}
+                className="w-full h-12 rounded-xl bg-primary"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {sendingNotification ? 'Yuborilmoqda...' : 'Xabar yuborish'}
+              </Button>
+            </div>
+
+            {/* Promotions Section */}
+            <div className="bg-card rounded-2xl p-4 shadow-card">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Aksiya rasmlari</h3>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={promotionFileInputRef}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    if (!file.type.startsWith('image/')) {
+                      toast.error('Faqat rasm fayllari qabul qilinadi');
+                      return;
+                    }
+
+                    if (file.size > 5 * 1024 * 1024) {
+                      toast.error('Rasm hajmi 5MB dan katta bo\'lmasligi kerak');
+                      return;
+                    }
+
+                    setIsUploadingPromotion(true);
+                    try {
+                      const fileExt = file.name.split('.').pop();
+                      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                      const filePath = `banners/${fileName}`;
+
+                      const { error: uploadError } = await supabase.storage
+                        .from('promotions')
+                        .upload(filePath, file);
+
+                      if (uploadError) throw uploadError;
+
+                      const { data: { publicUrl } } = supabase.storage
+                        .from('promotions')
+                        .getPublicUrl(filePath);
+
+                      await createPromotion(publicUrl);
+                      toast.success('Aksiya rasmi qo\'shildi!');
+                    } catch (err: any) {
+                      toast.error('Xatolik: ' + err.message);
+                    } finally {
+                      setIsUploadingPromotion(false);
+                      if (promotionFileInputRef.current) {
+                        promotionFileInputRef.current.value = '';
+                      }
+                    }
+                  }}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => promotionFileInputRef.current?.click()}
+                  disabled={isUploadingPromotion}
+                  className="text-xs"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  {isUploadingPromotion ? 'Yuklanmoqda...' : 'Rasm qo\'shish'}
+                </Button>
+              </div>
+
+              {promotionsLoading ? (
+                <p className="text-center text-muted-foreground py-4">Yuklanmoqda...</p>
+              ) : promotions.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">Aksiya rasmlari yo'q</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {promotions.map((promo) => (
+                    <div key={promo.id} className="relative group">
+                      <img
+                        src={promo.image_url}
+                        alt={promo.title || 'Aksiya'}
+                        className="w-full aspect-[16/9] object-cover rounded-xl"
+                      />
+                      <button
+                        onClick={async () => {
+                          if (!confirm('Bu aksiya rasmini o\'chirmoqchimisiz?')) return;
+                          try {
+                            await deletePromotion(promo.id);
+                            toast.success('Aksiya rasmi o\'chirildi');
+                          } catch (err: any) {
+                            toast.error('Xatolik: ' + err.message);
+                          }
+                        }}
+                        className="absolute top-2 right-2 bg-destructive text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
