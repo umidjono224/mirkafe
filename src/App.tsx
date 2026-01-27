@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
+import NotificationToast from "@/components/NotificationToast";
+import PushNotificationPrompt from "@/components/PushNotificationPrompt";
 import Register from "./pages/Register";
 import Menu from "./pages/Menu";
 import Orders from "./pages/Orders";
@@ -33,14 +35,18 @@ function AppContent() {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Menu />} />
-      <Route path="/orders" element={<Orders />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/help" element={<Help />} />
-      <Route path="/admin" element={<Admin />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <NotificationToast userId={user?.id} />
+      <PushNotificationPrompt userId={user?.id} />
+      <Routes>
+        <Route path="/" element={<Menu />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/help" element={<Help />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }
 

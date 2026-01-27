@@ -5,6 +5,7 @@ import { useProducts, Category, Product } from '@/hooks/useProducts';
 import { useOrderStats } from '@/hooks/useOrderStats';
 import { usePromotions, Promotion } from '@/hooks/usePromotions';
 import { useAdminNotifications } from '@/hooks/useNotifications';
+import { useAdminPushNotifications } from '@/hooks/usePushNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPrice, formatPhone } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ export default function Admin() {
   const { stats, loading: statsLoading, refetch: refetchStats } = useOrderStats();
   const { promotions, loading: promotionsLoading, createPromotion, deletePromotion, refetch: refetchPromotions } = usePromotions();
   const { sendNotification, sending: sendingNotification } = useAdminNotifications();
+  const { sendPushNotification, sending: sendingPush } = useAdminPushNotifications();
 
   // Product form state
   const [showProductForm, setShowProductForm] = useState(false);
@@ -69,6 +71,7 @@ export default function Admin() {
   const [isUploadingPromotion, setIsUploadingPromotion] = useState(false);
   
   // Notification state
+  const [notificationTitle, setNotificationTitle] = useState('MirCafe');
   const [notificationText, setNotificationText] = useState('');
 
   const handleLogin = () => {
@@ -518,6 +521,13 @@ export default function Admin() {
                 </div>
               </div>
               
+              <Input
+                placeholder="Sarlavha (masalan: MirCafe)"
+                value={notificationTitle}
+                onChange={(e) => setNotificationTitle(e.target.value)}
+                className="mb-2 rounded-xl h-11"
+              />
+              
               <Textarea
                 placeholder="Xabar matnini kiriting..."
                 value={notificationText}
@@ -528,18 +538,25 @@ export default function Admin() {
               <Button
                 onClick={async () => {
                   try {
+                    // Send in-app notification
                     await sendNotification(notificationText);
+                    // Send push notification
+                    try {
+                      await sendPushNotification(notificationTitle, notificationText);
+                    } catch (pushErr) {
+                      console.log('Push notification failed (may not be configured):', pushErr);
+                    }
                     setNotificationText('');
                     toast.success('Xabar yuborildi!');
                   } catch (err: any) {
                     toast.error(err.message);
                   }
                 }}
-                disabled={sendingNotification || !notificationText.trim()}
+                disabled={sendingNotification || sendingPush || !notificationText.trim()}
                 className="w-full h-12 rounded-xl bg-primary"
               >
                 <Send className="w-4 h-4 mr-2" />
-                {sendingNotification ? 'Yuborilmoqda...' : 'Xabar yuborish'}
+                {sendingNotification || sendingPush ? 'Yuborilmoqda...' : 'Xabar yuborish'}
               </Button>
             </div>
 
