@@ -167,26 +167,23 @@ export default function Menu() {
         )}
       </AnimatePresence>
 
-      {/* Order modal */}
+      {/* Order modal - centered */}
       <AnimatePresence>
         {showOrderModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-foreground/50 flex items-end justify-center"
+            className="fixed inset-0 z-50 bg-foreground/50 flex items-center justify-center p-4"
             onClick={() => setShowOrderModal(false)}
           >
             <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full bg-card rounded-t-3xl flex flex-col"
-              style={{ 
-                maxHeight: '70vh',
-                paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 16px)',
-              }}
+              className="w-full max-w-md bg-card rounded-3xl flex flex-col shadow-float"
+              style={{ maxHeight: '80vh' }}
             >
               {/* Header */}
               <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
@@ -232,8 +229,8 @@ export default function Menu() {
                 </div>
               </div>
 
-              {/* Confirm button - fixed at bottom, always visible */}
-              <div className="flex-shrink-0 px-6 pt-4">
+              {/* Confirm button - always visible */}
+              <div className="flex-shrink-0 p-6 pt-4">
                 <Button
                   onClick={handleConfirmOrder}
                   disabled={isOrdering || (!location && !manualAddress.trim())}
