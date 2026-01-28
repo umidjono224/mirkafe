@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
 import NotificationToast from "@/components/NotificationToast";
 import PushNotificationPrompt from "@/components/PushNotificationPrompt";
+import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import Register from "./pages/Register";
 import Menu from "./pages/Menu";
 import Orders from "./pages/Orders";
@@ -38,6 +39,7 @@ function AppContent() {
     <>
       <NotificationToast userId={user?.id} />
       <PushNotificationPrompt userId={user?.id} />
+      <IOSInstallPrompt />
       <Routes>
         <Route path="/" element={<Menu />} />
         <Route path="/orders" element={<Orders />} />
