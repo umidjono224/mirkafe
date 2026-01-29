@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getDeviceId } from '@/lib/deviceId';
+import { isTelegramWebApp, getTelegramUserId, getTelegramUserName, initTelegramWebApp } from '@/lib/telegram';
 
 export interface User {
   id: string;
   phone_number: string;
   name: string;
-  device_id: string;
+  device_id: string | null;
+  telegram_user_id: string | null;
   last_address: string | null;
   last_lat: number | null;
   last_lng: number | null;
@@ -19,22 +20,61 @@ export function useUser() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const deviceId = getDeviceId();
+  // Initialize Telegram WebApp on mount
+  useEffect(() => {
+    initTelegramWebApp();
+  }, []);
 
   const fetchUser = useCallback(async () => {
     try {
       setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('device_id', deviceId)
-        .maybeSingle();
+      
+      // Priority 1: Check for Telegram user
+      if (isTelegramWebApp()) {
+        const telegramId = getTelegramUserId();
+        if (telegramId) {
+          const { data, error: fetchError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('telegram_user_id', telegramId)
+            .maybeSingle();
 
-      if (fetchError) {
-        throw fetchError;
+          if (fetchError) {
+            throw fetchError;
+          }
+
+          if (data) {
+            setUser(data as User);
+            setError(null);
+            setLoading(false);
+            return;
+          }
+        }
       }
 
-      setUser(data);
+      // Priority 2: Check local storage for saved phone number
+      const savedPhone = localStorage.getItem('mircafe_user_phone');
+      if (savedPhone) {
+        const { data, error: fetchError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('phone_number', savedPhone)
+          .maybeSingle();
+
+        if (fetchError) {
+          throw fetchError;
+        }
+
+        if (data) {
+          setUser(data as User);
+          setError(null);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // No user found
+      setUser(null);
       setError(null);
     } catch (err) {
       console.error('Error fetching user:', err);
@@ -42,7 +82,7 @@ export function useUser() {
     } finally {
       setLoading(false);
     }
-  }, [deviceId]);
+  }, []);
 
   useEffect(() => {
     fetchUser();
@@ -52,34 +92,57 @@ export function useUser() {
     try {
       setLoading(true);
       
-      // Check if phone number already exists
+      const telegramId = isTelegramWebApp() ? getTelegramUserId() : null;
+
+      // Check if user already exists by Telegram ID
+      if (telegramId) {
+        const { data: existingTelegram } = await supabase
+          .from('users')
+          .select('*')
+          .eq('telegram_user_id', telegramId)
+          .maybeSingle();
+
+        if (existingTelegram) {
+          // User exists - auto-login silently
+          setUser(existingTelegram as User);
+          localStorage.setItem('mircafe_user_phone', existingTelegram.phone_number);
+          setError(null);
+          return existingTelegram;
+        }
+      }
+
+      // Check if user already exists by phone number
       const { data: existingPhone } = await supabase
         .from('users')
-        .select('id')
+        .select('*')
         .eq('phone_number', phoneNumber)
         .maybeSingle();
 
       if (existingPhone) {
-        throw new Error('Bu telefon raqami allaqachon ro\'yxatdan o\'tgan');
+        // User exists - auto-login silently
+        // Update telegram_user_id if we have it and it's not set
+        if (telegramId && !existingPhone.telegram_user_id) {
+          await supabase
+            .from('users')
+            .update({ telegram_user_id: telegramId })
+            .eq('id', existingPhone.id);
+          existingPhone.telegram_user_id = telegramId;
+        }
+        
+        setUser(existingPhone as User);
+        localStorage.setItem('mircafe_user_phone', existingPhone.phone_number);
+        setError(null);
+        return existingPhone;
       }
 
-      // Check if device already registered
-      const { data: existingDevice } = await supabase
-        .from('users')
-        .select('id')
-        .eq('device_id', deviceId)
-        .maybeSingle();
-
-      if (existingDevice) {
-        throw new Error('Bu qurilma allaqachon ro\'yxatdan o\'tgan');
-      }
-
+      // New user - create account
       const { data, error: insertError } = await supabase
         .from('users')
         .insert({
           name,
           phone_number: phoneNumber,
-          device_id: deviceId,
+          telegram_user_id: telegramId,
+          device_id: null, // No longer using device_id
         })
         .select()
         .single();
@@ -88,7 +151,8 @@ export function useUser() {
         throw insertError;
       }
 
-      setUser(data);
+      setUser(data as User);
+      localStorage.setItem('mircafe_user_phone', phoneNumber);
       setError(null);
       return data;
     } catch (err: any) {
@@ -117,7 +181,13 @@ export function useUser() {
         throw updateError;
       }
 
-      setUser(data);
+      setUser(data as User);
+      
+      // Update saved phone if changed
+      if (updates.phone_number) {
+        localStorage.setItem('mircafe_user_phone', updates.phone_number);
+      }
+      
       return data;
     } catch (err: any) {
       console.error('Update error:', err);
@@ -128,12 +198,18 @@ export function useUser() {
     }
   };
 
+  const logout = () => {
+    localStorage.removeItem('mircafe_user_phone');
+    setUser(null);
+  };
+
   return {
     user,
     loading,
     error,
     register,
     updateUser,
+    logout,
     refetch: fetchUser,
     isRegistered: !!user,
   };
