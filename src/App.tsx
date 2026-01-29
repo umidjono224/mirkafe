@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
+import { initTelegramWebApp } from "@/lib/telegram";
 import NotificationToast from "@/components/NotificationToast";
 import PushNotificationPrompt from "@/components/PushNotificationPrompt";
 import IOSInstallPrompt from "@/components/IOSInstallPrompt";
@@ -19,6 +21,11 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   const { user, loading, isRegistered } = useUser();
+
+  // Initialize Telegram WebApp on mount
+  useEffect(() => {
+    initTelegramWebApp();
+  }, []);
 
   if (loading) {
     return (

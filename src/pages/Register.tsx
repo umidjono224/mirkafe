@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@/hooks/useUser';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { isValidUzPhone, normalizePhone } from '@/lib/formatters';
+import { isTelegramWebApp, getTelegramUserName } from '@/lib/telegram';
 import { toast } from 'sonner';
 
 export default function Register() {
@@ -13,6 +14,16 @@ export default function Register() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Pre-fill name from Telegram if available
+  useEffect(() => {
+    if (isTelegramWebApp()) {
+      const telegramName = getTelegramUserName();
+      if (telegramName && !name) {
+        setName(telegramName);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +41,13 @@ export default function Register() {
     setIsSubmitting(true);
     try {
       await register(name.trim(), normalizePhone(phone));
-      toast.success('Xush kelibsiz!');
+      // No toast for existing users - seamless auto-login
       navigate('/');
     } catch (err: any) {
-      toast.error(err.message);
+      // Only show error for actual failures, not for existing users
+      if (!err.message?.includes('allaqachon')) {
+        toast.error(err.message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -87,9 +101,15 @@ export default function Register() {
             disabled={isSubmitting || loading}
             className="w-full h-14 text-lg font-semibold rounded-2xl bg-fire text-primary-foreground shadow-button hover:opacity-90 transition-opacity"
           >
-            {isSubmitting ? 'Yuklanmoqda...' : 'Ro\'yxatdan o\'tish'}
+            {isSubmitting ? 'Yuklanmoqda...' : 'Kirish'}
           </Button>
         </form>
+
+        {isTelegramWebApp() && (
+          <p className="text-center text-xs text-muted-foreground mt-4">
+            Telegram orqali ulangan
+          </p>
+        )}
       </motion.div>
     </div>
   );

@@ -274,35 +274,38 @@ export type Database = {
       users: {
         Row: {
           created_at: string
-          device_id: string
+          device_id: string | null
           id: string
           last_address: string | null
           last_lat: number | null
           last_lng: number | null
           name: string
           phone_number: string
+          telegram_user_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
-          device_id: string
+          device_id?: string | null
           id?: string
           last_address?: string | null
           last_lat?: number | null
           last_lng?: number | null
           name: string
           phone_number: string
+          telegram_user_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
-          device_id?: string
+          device_id?: string | null
           id?: string
           last_address?: string | null
           last_lat?: number | null
           last_lng?: number | null
           name?: string
           phone_number?: string
+          telegram_user_id?: string | null
           updated_at?: string
         }
         Relationships: []
