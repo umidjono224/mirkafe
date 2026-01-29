@@ -31,7 +31,7 @@ export default function Register() {
     try {
       await register(name.trim(), normalizePhone(phone));
       toast.success('Xush kelibsiz!');
-      navigate('/menu');
+      navigate('/');
     } catch (err: any) {
       toast.error(err.message);
     } finally {
