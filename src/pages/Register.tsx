@@ -40,9 +40,11 @@ export default function Register() {
 
     setIsSubmitting(true);
     try {
-      await register(name.trim(), normalizePhone(phone));
-      // No toast for existing users - seamless auto-login
-      navigate('/');
+      const result = await register(name.trim(), normalizePhone(phone));
+      if (result) {
+        // Force immediate navigation after successful registration/login
+        navigate('/', { replace: true });
+      }
     } catch (err: any) {
       // Only show error for actual failures, not for existing users
       if (!err.message?.includes('allaqachon')) {
