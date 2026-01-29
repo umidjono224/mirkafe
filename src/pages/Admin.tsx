@@ -29,6 +29,7 @@ interface ProductFormData {
   category_id: string;
   is_available: boolean;
   image_url: string | null;
+  sort_order: string;
 }
 
 const initialFormData: ProductFormData = {
@@ -37,6 +38,7 @@ const initialFormData: ProductFormData = {
   category_id: '',
   is_available: true,
   image_url: null,
+  sort_order: '0',
 };
 
 export default function Admin() {
@@ -121,6 +123,7 @@ export default function Admin() {
       category_id: product.category_id || categories[0]?.id || '',
       is_available: product.is_available,
       image_url: product.image_url,
+      sort_order: product.sort_order.toString(),
     });
     setShowProductForm(true);
   };
@@ -257,6 +260,8 @@ export default function Admin() {
       return;
     }
 
+    const sortOrder = parseInt(formData.sort_order) || 0;
+
     setIsSaving(true);
     try {
       const productData = {
@@ -265,6 +270,7 @@ export default function Admin() {
         category_id: formData.category_id,
         is_available: formData.is_available,
         image_url: formData.image_url,
+        sort_order: sortOrder,
       };
 
       if (editingProduct) {
@@ -822,6 +828,19 @@ export default function Admin() {
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Sort Order */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Tartib raqam</label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={formData.sort_order}
+                  onChange={(e) => setFormData(prev => ({ ...prev, sort_order: e.target.value }))}
+                  className="h-12 rounded-xl"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Kichik raqam - yuqorida ko'rsatiladi</p>
               </div>
 
               {/* Availability */}
