@@ -27,7 +27,8 @@ function AppContent() {
     initTelegramWebApp();
   }, []);
 
-  if (loading) {
+  // Show loading only on initial load, not during registration
+  if (loading && !isRegistered) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
