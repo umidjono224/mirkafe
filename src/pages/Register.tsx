@@ -40,17 +40,13 @@ export default function Register() {
 
     setIsSubmitting(true);
     try {
-      const result = await register(name.trim(), normalizePhone(phone));
-      if (result) {
-        // Force immediate navigation after successful registration/login
-        navigate('/', { replace: true });
-      }
+      await register(name.trim(), normalizePhone(phone));
+      // Navigation is handled by App.tsx when isRegistered becomes true
     } catch (err: any) {
       // Only show error for actual failures, not for existing users
       if (!err.message?.includes('allaqachon')) {
         toast.error(err.message);
       }
-    } finally {
       setIsSubmitting(false);
     }
   };
