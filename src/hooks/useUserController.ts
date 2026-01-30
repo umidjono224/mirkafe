@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { isTelegramWebApp, getTelegramUserId, getTelegramUserName, initTelegramWebApp } from '@/lib/telegram';
+import { isTelegramWebApp, getTelegramUserId, initTelegramWebApp } from '@/lib/telegram';
 
 export interface User {
   id: string;
@@ -15,7 +15,11 @@ export interface User {
   updated_at: string;
 }
 
-export function useUser() {
+/**
+ * Internal controller hook.
+ * IMPORTANT: Use via <UserProvider/> + useUser() to avoid multiple instances.
+ */
+export function useUserController() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +32,7 @@ export function useUser() {
   const fetchUser = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Priority 1: Check for Telegram user
       if (isTelegramWebApp()) {
         const telegramId = getTelegramUserId();
@@ -39,14 +43,11 @@ export function useUser() {
             .eq('telegram_user_id', telegramId)
             .maybeSingle();
 
-          if (fetchError) {
-            throw fetchError;
-          }
+          if (fetchError) throw fetchError;
 
           if (data) {
             setUser(data as User);
             setError(null);
-            setLoading(false);
             return;
           }
         }
@@ -61,14 +62,11 @@ export function useUser() {
           .eq('phone_number', savedPhone)
           .maybeSingle();
 
-        if (fetchError) {
-          throw fetchError;
-        }
+        if (fetchError) throw fetchError;
 
         if (data) {
           setUser(data as User);
           setError(null);
-          setLoading(false);
           return;
         }
       }
@@ -78,7 +76,7 @@ export function useUser() {
       setError(null);
     } catch (err) {
       console.error('Error fetching user:', err);
-      setError('Foydalanuvchi ma\'lumotlarini yuklashda xatolik');
+      setError("Foydalanuvchi ma'lumotlarini yuklashda xatolik");
     } finally {
       setLoading(false);
     }
@@ -91,7 +89,7 @@ export function useUser() {
   const register = async (name: string, phoneNumber: string) => {
     try {
       setLoading(true);
-      
+
       const telegramId = isTelegramWebApp() ? getTelegramUserId() : null;
 
       // Check if user already exists by Telegram ID
@@ -103,7 +101,6 @@ export function useUser() {
           .maybeSingle();
 
         if (existingTelegram) {
-          // User exists - auto-login silently
           setUser(existingTelegram as User);
           localStorage.setItem('mircafe_user_phone', existingTelegram.phone_number);
           setError(null);
@@ -119,7 +116,6 @@ export function useUser() {
         .maybeSingle();
 
       if (existingPhone) {
-        // User exists - auto-login silently
         // Update telegram_user_id if we have it and it's not set
         if (telegramId && !existingPhone.telegram_user_id) {
           await supabase
@@ -128,7 +124,7 @@ export function useUser() {
             .eq('id', existingPhone.id);
           existingPhone.telegram_user_id = telegramId;
         }
-        
+
         setUser(existingPhone as User);
         localStorage.setItem('mircafe_user_phone', existingPhone.phone_number);
         setError(null);
@@ -142,14 +138,12 @@ export function useUser() {
           name,
           phone_number: phoneNumber,
           telegram_user_id: telegramId,
-          device_id: null, // No longer using device_id
+          device_id: null,
         })
         .select()
         .single();
 
-      if (insertError) {
-        throw insertError;
-      }
+      if (insertError) throw insertError;
 
       setUser(data as User);
       localStorage.setItem('mircafe_user_phone', phoneNumber);
@@ -157,7 +151,7 @@ export function useUser() {
       return data;
     } catch (err: any) {
       console.error('Registration error:', err);
-      const message = err.message || 'Ro\'yxatdan o\'tishda xatolik yuz berdi';
+      const message = err.message || "Ro'yxatdan o'tishda xatolik yuz berdi";
       setError(message);
       throw new Error(message);
     } finally {
@@ -165,7 +159,9 @@ export function useUser() {
     }
   };
 
-  const updateUser = async (updates: Partial<Pick<User, 'name' | 'phone_number' | 'last_address' | 'last_lat' | 'last_lng'>>) => {
+  const updateUser = async (
+    updates: Partial<Pick<User, 'name' | 'phone_number' | 'last_address' | 'last_lat' | 'last_lng'>>,
+  ) => {
     if (!user) return;
 
     try {
@@ -177,21 +173,18 @@ export function useUser() {
         .select()
         .single();
 
-      if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
       setUser(data as User);
-      
-      // Update saved phone if changed
+
       if (updates.phone_number) {
         localStorage.setItem('mircafe_user_phone', updates.phone_number);
       }
-      
+
       return data;
     } catch (err: any) {
       console.error('Update error:', err);
-      setError(err.message || 'Ma\'lumotlarni yangilashda xatolik');
+      setError(err.message || "Ma'lumotlarni yangilashda xatolik");
       throw err;
     } finally {
       setLoading(false);
