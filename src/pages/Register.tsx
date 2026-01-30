@@ -42,6 +42,7 @@ export default function Register() {
     try {
       await register(name.trim(), normalizePhone(phone));
       // Navigation is handled by App.tsx when isRegistered becomes true
+      // Don't reset isSubmitting on success - let the component unmount
     } catch (err: any) {
       // Only show error for actual failures, not for existing users
       if (!err.message?.includes('allaqachon')) {
