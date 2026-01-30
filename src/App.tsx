@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useUser } from "@/hooks/useUser";
+import { UserProvider, useUser } from "@/hooks/useUser";
 import { initTelegramWebApp } from "@/lib/telegram";
 import NotificationToast from "@/components/NotificationToast";
 import PushNotificationPrompt from "@/components/PushNotificationPrompt";
@@ -66,7 +66,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppContent />
+        <UserProvider>
+          <AppContent />
+        </UserProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
