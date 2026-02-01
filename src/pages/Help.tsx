@@ -43,7 +43,7 @@ export default function Help() {
           <a href="tel:+998700112999">
             <Button className="w-full h-14 rounded-2xl bg-fire text-primary-foreground text-lg font-semibold">
               <Phone className="w-5 h-5 mr-2" />
-              +998 70 011 29 99
+              +998700112999
             </Button>
           </a>
         </div>
