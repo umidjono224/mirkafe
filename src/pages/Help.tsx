@@ -40,10 +40,10 @@ export default function Help() {
           <h2 className="text-xl font-bold mb-2">MirCafe</h2>
           <p className="text-muted-foreground mb-6">Savol yoki takliflar uchun biz bilan bog'laning</p>
           
-          <a href="tel:+998990219111">
+          <a href="tel:+998700112999">
             <Button className="w-full h-14 rounded-2xl bg-fire text-primary-foreground text-lg font-semibold">
               <Phone className="w-5 h-5 mr-2" />
-              +998 99 021 91 11
+              +998 70 011 29 99
             </Button>
           </a>
         </div>
