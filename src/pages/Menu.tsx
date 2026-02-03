@@ -7,6 +7,7 @@ import { useCart } from '@/hooks/useCart';
 import { useOrders } from '@/hooks/useOrders';
 import { useLocation } from '@/hooks/useLocation';
 import { formatPrice } from '@/lib/formatters';
+import { isWithinBusinessHours, getClosedMessage } from '@/lib/businessHours';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import BottomNav from '@/components/BottomNav';
@@ -14,7 +15,7 @@ import ProductCard from '@/components/ProductCard';
 import PromotionsBanner from '@/components/PromotionsBanner';
 import NotificationToast from '@/components/NotificationToast';
 import { toast } from 'sonner';
-import { MapPin, X, RotateCcw } from 'lucide-react';
+import { MapPin, X, RotateCcw, Clock } from 'lucide-react';
 
 export default function Menu() {
   const navigate = useNavigate();
@@ -26,8 +27,12 @@ export default function Menu() {
   
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showClosedModal, setShowClosedModal] = useState(false);
   const [manualAddress, setManualAddress] = useState('');
   const [isOrdering, setIsOrdering] = useState(false);
+  
+  // Check business hours on each render for button state
+  const isOpen = isWithinBusinessHours();
 
   // Set first category as active when loaded
   if (!activeCategory && categories.length > 0) {
@@ -37,6 +42,12 @@ export default function Menu() {
   const filteredProducts = activeCategory ? getProductsByCategory(activeCategory) : products;
 
   const handleOrder = async () => {
+    // Check business hours instantly on button click
+    if (!isWithinBusinessHours()) {
+      setShowClosedModal(true);
+      return;
+    }
+    
     setShowOrderModal(true);
     await requestLocation();
   };
@@ -159,10 +170,16 @@ export default function Menu() {
           >
             <Button
               onClick={handleOrder}
-              className="w-full h-14 text-lg font-semibold rounded-2xl bg-fire text-primary-foreground shadow-float"
+              className={`w-full h-14 text-lg font-semibold rounded-2xl bg-fire text-primary-foreground shadow-float ${!isOpen ? 'opacity-70' : ''}`}
             >
               Buyurtma berish · {formatPrice(total)}
             </Button>
+            {!isOpen && (
+              <p className="text-center text-sm text-muted-foreground mt-2 flex items-center justify-center gap-1">
+                <Clock className="w-4 h-4" />
+                Hozir yopiq
+              </p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -239,6 +256,40 @@ export default function Menu() {
                   {isOrdering ? 'Yuborilmoqda...' : 'Tasdiqlash'}
                 </Button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Business hours closed modal */}
+      <AnimatePresence>
+        {showClosedModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-foreground/50 flex items-center justify-center p-4"
+            onClick={() => setShowClosedModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-card rounded-3xl p-6 shadow-float text-center"
+            >
+              <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+                <Clock className="w-8 h-8 text-fire" />
+              </div>
+              <p className="text-base mb-6">
+                {getClosedMessage()}
+              </p>
+              <Button
+                onClick={() => setShowClosedModal(false)}
+                className="w-full h-12 text-base font-semibold rounded-2xl bg-fire text-primary-foreground"
+              >
+                Tushunarli
+              </Button>
             </motion.div>
           </motion.div>
         )}
