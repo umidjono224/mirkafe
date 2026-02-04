@@ -6,6 +6,7 @@ import { useOrderStats } from '@/hooks/useOrderStats';
 import { usePromotions, Promotion } from '@/hooks/usePromotions';
 import { useAdminNotifications } from '@/hooks/useNotifications';
 import { useAdminPushNotifications } from '@/hooks/usePushNotifications';
+import { useOrderNotificationSound } from '@/hooks/useOrderNotificationSound';
 import { supabase } from '@/integrations/supabase/client';
 import { formatPrice, formatPhone } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,9 @@ export default function Admin() {
   const { promotions, loading: promotionsLoading, createPromotion, deletePromotion, refetch: refetchPromotions } = usePromotions();
   const { sendNotification, sending: sendingNotification } = useAdminNotifications();
   const { sendPushNotification, sending: sendingPush } = useAdminPushNotifications();
+
+  // Play notification sound when new orders arrive (only when authenticated)
+  useOrderNotificationSound(orders.length, isAuthenticated);
 
   // Product form state
   const [showProductForm, setShowProductForm] = useState(false);
