@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { ArrowLeft, Clock, Truck, CheckCircle, ExternalLink, Package, TrendingUp, DollarSign, Plus, Pencil, Trash2, Upload, X, Image, FolderPlus, ChevronUp, ChevronDown, Users, Megaphone, Send } from 'lucide-react';
+import { ArrowLeft, Clock, Truck, CheckCircle, ExternalLink, Package, TrendingUp, DollarSign, Plus, Pencil, Trash2, Upload, X, Image, FolderPlus, ChevronUp, ChevronDown, Users, Megaphone, Send, XCircle } from 'lucide-react';
 
 const ADMIN_LOGIN = 'Jumamirkafe';
 const ADMIN_PASSWORD = 'Bmirkafejuma';
@@ -49,7 +49,7 @@ export default function Admin() {
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'aksiyalar' | 'stats'>('orders');
   
-  const { orders, loading: ordersLoading, updateOrderStatus } = useAllOrders();
+  const { orders, loading: ordersLoading, updateOrderStatus, cancelOrder } = useAllOrders();
   const { products, categories, loading: productsLoading, refetch: refetchProducts, createCategory, deleteCategory, reorderCategories } = useProducts();
   const { stats, loading: statsLoading, refetch: refetchStats } = useOrderStats();
   const { promotions, loading: promotionsLoading, createPromotion, deletePromotion, refetch: refetchPromotions } = usePromotions();
@@ -93,6 +93,17 @@ export default function Admin() {
     try {
       await updateOrderStatus(orderId, status);
       toast.success('Status yangilandi');
+    } catch {
+      toast.error('Xatolik yuz berdi');
+    }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!confirm('Bu buyurtmani bekor qilmoqchimisiz? Statistikaga qo\'shilmaydi.')) return;
+    
+    try {
+      await cancelOrder(orderId);
+      toast.success('Buyurtma bekor qilindi');
     } catch {
       toast.error('Xatolik yuz berdi');
     }
@@ -384,7 +395,7 @@ export default function Admin() {
                       </a>
                     ) : order.address}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mb-2">
                     {(['tayyorlanmoqda', 'yetkazilmoqda', 'yetkazildi'] as OrderStatus[]).map((s) => (
                       <button
                         key={s}
@@ -395,6 +406,13 @@ export default function Admin() {
                       </button>
                     ))}
                   </div>
+                  <button
+                    onClick={() => handleCancelOrder(order.id)}
+                    className="w-full py-2 rounded-lg text-xs font-medium border border-destructive/30 bg-destructive/10 text-destructive flex items-center justify-center gap-1"
+                  >
+                    <XCircle className="w-3 h-3" />
+                    Bekor qilish
+                  </button>
                 </div>
               );
             })}

@@ -225,11 +225,29 @@ export function useAllOrders() {
     }
   };
 
+  const cancelOrder = async (orderId: string) => {
+    try {
+      // Simply delete the order - it won't be added to stats since stats only update on 'yetkazildi' status
+      const { error: deleteError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (deleteError) throw deleteError;
+
+      await fetchAllOrders();
+    } catch (err: any) {
+      console.error('Error canceling order:', err);
+      throw new Error(err.message || 'Buyurtmani bekor qilishda xatolik');
+    }
+  };
+
   return {
     orders,
     loading,
     error,
     refetch: fetchAllOrders,
     updateOrderStatus,
+    cancelOrder,
   };
 }
