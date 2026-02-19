@@ -128,12 +128,28 @@ export function useOrders(userId?: string) {
     }
   };
 
+  const cancelOrder = async (orderId: string) => {
+    try {
+      const { error: deleteError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (deleteError) throw deleteError;
+      await fetchOrders();
+    } catch (err: any) {
+      console.error('Error canceling order:', err);
+      throw new Error(err.message || 'Buyurtmani bekor qilishda xatolik');
+    }
+  };
+
   return {
     orders,
     loading,
     error,
     refetch: fetchOrders,
     createOrder,
+    cancelOrder,
   };
 }
 
