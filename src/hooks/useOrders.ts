@@ -72,7 +72,7 @@ export function useOrders(userId?: string) {
     if (!userId) return;
 
     const channel = supabase
-      .channel('orders-changes')
+      .channel(`orders-changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
@@ -209,7 +209,7 @@ export function useAllOrders() {
   // Subscribe to realtime updates
   useEffect(() => {
     const channel = supabase
-      .channel('all-orders-changes')
+      .channel(`all-orders-changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {

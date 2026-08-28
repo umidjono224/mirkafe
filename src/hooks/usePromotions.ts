@@ -20,7 +20,7 @@ export function usePromotions() {
 
     // Subscribe to realtime changes
     const channel = supabase
-      .channel('promotions-changes')
+      .channel(`promotions-changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
