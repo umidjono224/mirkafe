@@ -15,7 +15,7 @@ import ProductCard from '@/components/ProductCard';
 import PromotionsBanner from '@/components/PromotionsBanner';
 import NotificationToast from '@/components/NotificationToast';
 import { toast } from 'sonner';
-import { MapPin, X, RotateCcw, Clock } from 'lucide-react';
+import { MapPin, X, RotateCcw, Clock, MessageSquare } from 'lucide-react';
 
 export default function Menu() {
   const navigate = useNavigate();
@@ -245,6 +245,20 @@ export default function Menu() {
                       className="h-14 rounded-2xl"
                     />
                   )}
+                </div>
+
+                {/* Order notes */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    <span className="font-medium">Izoh (ixtiyoriy)</span>
+                  </div>
+                  <Input
+                    placeholder="Masalan: achchiq bo'lmasin"
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    className="h-14 rounded-2xl"
+                  />
                 </div>
               </div>
 
