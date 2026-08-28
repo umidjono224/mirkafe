@@ -13,6 +13,7 @@ export interface Order {
   address_lng: number | null;
   total_amount: number;
   items: CartItem[];
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -95,7 +96,8 @@ export function useOrders(userId?: string) {
     cartItems: CartItem[],
     address: string,
     lat?: number,
-    lng?: number
+    lng?: number,
+    notes?: string
   ) => {
     if (!userId) throw new Error('Foydalanuvchi topilmadi');
 
