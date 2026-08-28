@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Notification {
@@ -48,12 +48,17 @@ export function useNotifications(userId?: string) {
     }
   }, [userId]);
 
+  const fetchRef = useRef(fetchNotifications);
+  fetchRef.current = fetchNotifications;
+
   useEffect(() => {
     fetchNotifications();
+  }, [fetchNotifications]);
 
-    // Subscribe to realtime changes
+  useEffect(() => {
+    // Unique channel name per hook instance to avoid re-using a subscribed channel
     const channel = supabase
-      .channel('notifications-changes')
+      .channel(`notifications-changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
@@ -62,7 +67,7 @@ export function useNotifications(userId?: string) {
           table: 'notifications',
         },
         () => {
-          fetchNotifications();
+          fetchRef.current();
         }
       )
       .subscribe();
@@ -70,7 +75,8 @@ export function useNotifications(userId?: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchNotifications]);
+  }, []);
+
 
   const markAsRead = async (notificationId: string) => {
     if (!userId) return;
