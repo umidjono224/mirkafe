@@ -69,7 +69,7 @@ export default function Menu() {
 
     setIsOrdering(true);
     try {
-      await createOrder(items, address, location?.lat, location?.lng);
+      await createOrder(items, address, location?.lat, location?.lng, orderNotes);
       
       // Save user's address for future
       if (location) {
@@ -82,6 +82,7 @@ export default function Menu() {
       
       saveAsLastOrder();
       clearCart();
+      setOrderNotes('');
       setShowOrderModal(false);
       toast.success('Buyurtma qabul qilindi!');
       navigate('/orders');
