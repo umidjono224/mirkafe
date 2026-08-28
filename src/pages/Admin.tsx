@@ -395,6 +395,11 @@ export default function Admin() {
                       </a>
                     ) : order.address}
                   </div>
+                  {order.notes && (
+                    <div className="mb-3 p-2 bg-muted rounded-lg text-sm">
+                      💬 Izoh: {order.notes}
+                    </div>
+                  )}
                   <div className="flex gap-2 mb-2">
                     {(['tayyorlanmoqda', 'yetkazilmoqda', 'yetkazildi'] as OrderStatus[]).map((s) => (
                       <button
