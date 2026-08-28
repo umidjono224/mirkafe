@@ -29,6 +29,7 @@ export default function Menu() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [manualAddress, setManualAddress] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
   const [isOrdering, setIsOrdering] = useState(false);
   
   // Check business hours on each render for button state

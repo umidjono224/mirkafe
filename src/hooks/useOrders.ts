@@ -116,6 +116,7 @@ export function useOrders(userId?: string) {
           address,
           address_lat: lat || null,
           address_lng: lng || null,
+          notes: notes?.trim() || null,
         })
         .select()
         .single();
