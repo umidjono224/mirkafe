@@ -15,7 +15,7 @@ import ProductCard from '@/components/ProductCard';
 import PromotionsBanner from '@/components/PromotionsBanner';
 import NotificationToast from '@/components/NotificationToast';
 import { toast } from 'sonner';
-import { MapPin, X, RotateCcw, Clock } from 'lucide-react';
+import { MapPin, X, RotateCcw, Clock, MessageSquare } from 'lucide-react';
 
 export default function Menu() {
   const navigate = useNavigate();
@@ -29,6 +29,7 @@ export default function Menu() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showClosedModal, setShowClosedModal] = useState(false);
   const [manualAddress, setManualAddress] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
   const [isOrdering, setIsOrdering] = useState(false);
   
   // Check business hours on each render for button state
@@ -68,7 +69,7 @@ export default function Menu() {
 
     setIsOrdering(true);
     try {
-      await createOrder(items, address, location?.lat, location?.lng);
+      await createOrder(items, address, location?.lat, location?.lng, orderNotes);
       
       // Save user's address for future
       if (location) {
@@ -81,6 +82,7 @@ export default function Menu() {
       
       saveAsLastOrder();
       clearCart();
+      setOrderNotes('');
       setShowOrderModal(false);
       toast.success('Buyurtma qabul qilindi!');
       navigate('/orders');
@@ -243,6 +245,20 @@ export default function Menu() {
                       className="h-14 rounded-2xl"
                     />
                   )}
+                </div>
+
+                {/* Order notes */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    <span className="font-medium">Izoh (ixtiyoriy)</span>
+                  </div>
+                  <Input
+                    placeholder="Masalan: achchiq bo'lmasin"
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    className="h-14 rounded-2xl"
+                  />
                 </div>
               </div>
 
